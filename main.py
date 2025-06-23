@@ -40,7 +40,6 @@ def get_contract_gainers_and_losers():
 
         now = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
 
-        # 📝 Telegram 内容
         telegram_msg = f"*📊 Binance 合约涨跌榜（每4小时更新）*\n🕒 {now}\n\n"
         telegram_msg += "*📈 涨幅前五:*\n"
         for item in top_gainers:
@@ -66,11 +65,11 @@ def get_contract_gainers_and_losers():
                 line = f"- {symbol}: {percent:.2f}%"
             telegram_msg += line + "\n"
 
-        # ✍️ 更新 README.md（去掉 * 以免 GitHub 渲染混乱）
+        # 写入 README（本地更新，不提交）
         with open("README.md", "w", encoding="utf-8") as f:
             f.write(telegram_msg.replace("*", ""))
 
-        # 📤 推送到 Telegram
+        # 发送 Telegram
         send_to_telegram(telegram_msg)
 
     except Exception as e:
