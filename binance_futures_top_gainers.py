@@ -34,6 +34,12 @@ def send_telegram_message(message):
     except Exception as e:
         print(f"发送 Telegram 消息出错: {e}")
 
+def safe_float(val):
+    try:
+        return float(val)
+    except:
+        return 0.0
+
 def format_symbol(symbol):
     return symbol.replace("USDT", "/USDT")
 
@@ -44,34 +50,49 @@ def main():
         print("API 返回非预期结构: ", data)
         return
 
-    # 筛选出 USDT 合约
-    filtered_data = [x for x in data if isinstance(x, dict) and x.get("symbol", "").endswith("USDT")]
+    print(f"返回总记录数: {len(data)}")
+    print("示例数据:", data[:1])
 
-    try:
-        sorted_data = sorted(
-            filtered_data,
-            key=lambda x: float(x.get("priceChangePercent", 0)),
-            reverse=True
-        )
-    except Exception as e:
-        print("排序时出错: ", e)
-        return
+    # 宽松过滤含有 USDT 的合约
+    filtered_data = [
+        x for x in data
+        if isinstance(x, dict)
+        and "USDT" in x.get("symbol", "")
+        and x.get("priceChangePercent") is not None
+    ]
+
+    print(f"USDT 合约数: {len(filtered_data)}")
+
+    sorted_data = sorted(
+        filtered_data,
+        key=lambda x: safe_float(x.get("priceChangePercent")),
+        reverse=True
+    )
 
     top_gainers = sorted_data[:5]
     top_losers = sorted_data[-5:]
 
     def format_entry(entry):
-        pct = float(entry.get("priceChangePercent", 0))
+        pct = safe_float(entry.get("priceChangePercent"))
         mark = "🔥" if abs(pct) >= 60 else ""
         symbol = format_symbol(entry["symbol"])
         return f"{symbol}: `{pct:+.2f}%` {mark}"
 
     message = "*📈 币安合约涨跌榜（最近24小时）*\n\n"
-    message += "*🚀 涨幅前5:*\n"
-    message += "\n".join([format_entry(e) for e in top_gainers]) + "\n\n"
-    message += "*💥 跌幅前5:*\n"
-    message += "\n".join([format_entry(e) for e in top_losers])
 
+    message += "*🚀 涨幅前5:*\n"
+    if top_gainers:
+        message += "\n".join([format_entry(e) for e in top_gainers])
+    else:
+        message += "_无数据_"
+
+    message += "\n\n*💥 跌幅前5:*\n"
+    if top_losers:
+        message += "\n".join([format_entry(e) for e in top_losers])
+    else:
+        message += "_无数据_"
+
+    print("准备发送消息:\n", message)
     send_telegram_message(message)
 
 if __name__ == "__main__":
