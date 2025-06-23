@@ -1,0 +1,36 @@
+name: Binance
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'  # 每4小时运行一次（UTC）
+  workflow_dispatch:       # 手动触发支持
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 拉取仓库代码
+        uses: actions/checkout@v3
+
+      - name: 🐍 设置 Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 📦 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 🧠 执行主脚本生成 README + 推送 Telegram
+        run: python main.py
+
+      - name: 🚀 提交 README 到仓库
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "📈 自动更新 Binance 涨跌榜" || echo "无变化"
+          git push
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
